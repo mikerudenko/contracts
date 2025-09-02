@@ -1,0 +1,36 @@
+# Echidna configuration for Drips protocol fuzzing
+testMode: "assertion"
+prefix: "echidna_"
+coverage: true
+corpusDir: "echidna"
+balanceAddr: 0x1043561a8829300000
+balanceContract: 0x1043561a8829300000
+filterFunctions: ["echidna_", "property_"]
+cryticArgs: ["--foundry-compile-all"]
+deployer: "0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38"
+contractAddr: "0x7FA9385bE102ac3EAc297483Dd6233D62b3e1496"
+shrinkLimit: 100000
+
+# Enhanced fuzzing settings
+testLimit: 50000
+seqLen: 100
+sender: ["0x10000", "0x20000", "0x30000"]
+
+# Multi-contract testing for comprehensive coverage
+multi-abi: true
+allContracts: true
+
+# Gas and performance settings
+estimateGas: true
+maxGasUsage: 12000000
+timeout: 3600  # 1 hour
+
+# Advanced options
+stopOnFail: false
+checkAsserts: true
+saveTxs: true
+saveCorpus: true
+format: "text"
+
+# Seed for reproducible results
+seed: 12345

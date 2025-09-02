@@ -1,20 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
-import {
-    AccountMetadata,
-    SplitsReceiver,
-    StreamConfigImpl,
-    Drips,
-    StreamsHistory,
-    StreamReceiver
-} from "src/Drips.sol";
+import {AccountMetadata, SplitsReceiver, StreamConfigImpl, Drips, StreamsHistory, StreamReceiver} from "src/Drips.sol";
 import {ManagedProxy} from "src/Managed.sol";
 import {Test} from "forge-std/Test.sol";
-import {
-    IERC20,
-    ERC20PresetFixedSupply
-} from "openzeppelin-contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import {IERC20, ERC20PresetFixedSupply} from "openzeppelin-contracts/token/ERC20/presets/ERC20PresetFixedSupply.sol";
+import "forge-std/console2.sol";
 
 contract DripsTest is Test {
     Drips internal drips;
@@ -23,7 +14,8 @@ contract DripsTest is Test {
     IERC20 internal defaultErc20;
     IERC20 internal otherErc20;
 
-    mapping(uint256 accountId => mapping(IERC20 => StreamReceiver[])) internal currStreamsReceivers;
+    mapping(uint256 accountId => mapping(IERC20 => StreamReceiver[]))
+        internal currStreamsReceivers;
     mapping(uint256 accountId => SplitsReceiver[]) internal currSplitsReceivers;
 
     address internal immutable driver = address(bytes20("driver"));
@@ -41,11 +33,22 @@ contract DripsTest is Test {
 
     bytes internal constant ERROR_NOT_DRIVER = "Callable only by the driver";
     bytes internal constant ERROR_BALANCE_TOO_HIGH = "Total balance too high";
-    bytes internal constant ERROR_ERC_20_BALANCE_TOO_LOW = "Token balance too low";
+    bytes internal constant ERROR_ERC_20_BALANCE_TOO_LOW =
+        "Token balance too low";
 
     function setUp() public {
-        defaultErc20 = new ERC20PresetFixedSupply("default", "default", 2 ** 128, address(this));
-        otherErc20 = new ERC20PresetFixedSupply("other", "other", 2 ** 128, address(this));
+        defaultErc20 = new ERC20PresetFixedSupply(
+            "default",
+            "default",
+            2 ** 128,
+            address(this)
+        );
+        otherErc20 = new ERC20PresetFixedSupply(
+            "other",
+            "other",
+            2 ** 128,
+            address(this)
+        );
         erc20 = defaultErc20;
         Drips dripsLogic = new Drips(10);
         drips = Drips(address(new ManagedProxy(dripsLogic, admin, "")));
@@ -65,16 +68,17 @@ contract DripsTest is Test {
         skip(drips.cycleSecs() - (vm.getBlockTimestamp() % drips.cycleSecs()));
     }
 
-    function loadStreams(uint256 forAccount)
-        internal
-        view
-        returns (StreamReceiver[] memory currReceivers)
-    {
+    function loadStreams(
+        uint256 forAccount
+    ) internal view returns (StreamReceiver[] memory currReceivers) {
         currReceivers = currStreamsReceivers[forAccount][erc20];
         assertStreams(forAccount, currReceivers);
     }
 
-    function storeStreams(uint256 forAccount, StreamReceiver[] memory newReceivers) internal {
+    function storeStreams(
+        uint256 forAccount,
+        StreamReceiver[] memory newReceivers
+    ) internal {
         assertStreams(forAccount, newReceivers);
         delete currStreamsReceivers[forAccount][erc20];
         for (uint256 i = 0; i < newReceivers.length; i++) {
@@ -82,16 +86,17 @@ contract DripsTest is Test {
         }
     }
 
-    function loadSplits(uint256 forAccount)
-        internal
-        view
-        returns (SplitsReceiver[] memory currSplits)
-    {
+    function loadSplits(
+        uint256 forAccount
+    ) internal view returns (SplitsReceiver[] memory currSplits) {
         currSplits = currSplitsReceivers[forAccount];
         assertSplits(forAccount, currSplits);
     }
 
-    function storeSplits(uint256 forAccount, SplitsReceiver[] memory newReceivers) internal {
+    function storeSplits(
+        uint256 forAccount,
+        SplitsReceiver[] memory newReceivers
+    ) internal {
         assertSplits(forAccount, newReceivers);
         delete currSplitsReceivers[forAccount];
         for (uint256 i = 0; i < newReceivers.length; i++) {
@@ -99,19 +104,27 @@ contract DripsTest is Test {
         }
     }
 
-    function streamsReceivers() internal pure returns (StreamReceiver[] memory list) {
+    function streamsReceivers()
+        internal
+        pure
+        returns (StreamReceiver[] memory list)
+    {
         list = new StreamReceiver[](0);
     }
 
-    function streamsReceivers(uint256 streamReceiver, uint128 amtPerSec)
-        internal
-        view
-        returns (StreamReceiver[] memory list)
-    {
+    function streamsReceivers(
+        uint256 streamReceiver,
+        uint128 amtPerSec
+    ) internal view returns (StreamReceiver[] memory list) {
         list = new StreamReceiver[](1);
         list[0] = StreamReceiver(
             streamReceiver,
-            StreamConfigImpl.create(0, uint160(amtPerSec * drips.AMT_PER_SEC_MULTIPLIER()), 0, 0)
+            StreamConfigImpl.create(
+                0,
+                uint160(amtPerSec * drips.AMT_PER_SEC_MULTIPLIER()),
+                0,
+                0
+            )
         );
     }
 
@@ -135,38 +148,65 @@ contract DripsTest is Test {
         int128 balanceDelta = int128(balanceTo) - int128(balanceFrom);
         uint256 ownBalanceBefore = ownBalance();
         uint256 dripsBalanceBefore = dripsBalance();
-        (uint256 streamsBalanceBefore, uint256 splitsBalanceBefore) = balances();
+        (
+            uint256 streamsBalanceBefore,
+            uint256 splitsBalanceBefore
+        ) = balances();
         StreamReceiver[] memory currReceivers = loadStreams(forAccount);
 
         if (balanceDelta > 0) transferToDrips(uint128(balanceDelta));
         vm.prank(driver);
-        int128 realBalanceDelta =
-            drips.setStreams(forAccount, erc20, currReceivers, balanceDelta, newReceivers, 0, 0);
+        int128 realBalanceDelta = drips.setStreams(
+            forAccount,
+            erc20,
+            currReceivers,
+            balanceDelta,
+            newReceivers,
+            0,
+            0
+        );
         if (balanceDelta < 0) withdraw(uint128(-balanceDelta));
 
         storeStreams(forAccount, newReceivers);
         assertEq(realBalanceDelta, balanceDelta, "Invalid real balance delta");
-        (,, uint32 updateTime, uint128 actualBalance,) = drips.streamsState(forAccount, erc20);
-        assertEq(updateTime, vm.getBlockTimestamp(), "Invalid new last update time");
+        (, , uint32 updateTime, uint128 actualBalance, ) = drips.streamsState(
+            forAccount,
+            erc20
+        );
+        assertEq(
+            updateTime,
+            vm.getBlockTimestamp(),
+            "Invalid new last update time"
+        );
         assertEq(balanceTo, actualBalance, "Invalid streams balance");
         assertOwnBalance(uint256(int256(ownBalanceBefore) - balanceDelta));
         assertDripsBalance(uint256(int256(dripsBalanceBefore) + balanceDelta));
-        assertBalances(uint256(int256(streamsBalanceBefore) + balanceDelta), splitsBalanceBefore);
+        assertBalances(
+            uint256(int256(streamsBalanceBefore) + balanceDelta),
+            splitsBalanceBefore
+        );
     }
 
-    function assertStreams(uint256 forAccount, StreamReceiver[] memory currReceivers)
-        internal
-        view
-    {
-        (bytes32 actual,,,,) = drips.streamsState(forAccount, erc20);
+    function assertStreams(
+        uint256 forAccount,
+        StreamReceiver[] memory currReceivers
+    ) internal view {
+        (bytes32 actual, , , , ) = drips.streamsState(forAccount, erc20);
         bytes32 expected = drips.hashStreams(currReceivers);
         assertEq(actual, expected, "Invalid streams configuration");
     }
 
-    function give(uint256 fromAccount, uint256 toAccount, uint128 amt) internal {
+    function give(
+        uint256 fromAccount,
+        uint256 toAccount,
+        uint128 amt
+    ) internal {
         uint256 ownBalanceBefore = ownBalance();
         uint256 dripsBalanceBefore = dripsBalance();
-        (uint256 streamsBalanceBefore, uint256 splitsBalanceBefore) = balances();
+        (
+            uint256 streamsBalanceBefore,
+            uint256 splitsBalanceBefore
+        ) = balances();
         uint128 expectedSplittable = splittable(toAccount) + amt;
 
         transferToDrips(amt);
@@ -190,15 +230,18 @@ contract DripsTest is Test {
         drips.give(fromAccount, toAccount, erc20, amt);
     }
 
-    function splitsReceivers() internal pure returns (SplitsReceiver[] memory list) {
-        list = new SplitsReceiver[](0);
-    }
-
-    function splitsReceivers(uint256 splitsReceiver, uint32 weight)
+    function splitsReceivers()
         internal
         pure
         returns (SplitsReceiver[] memory list)
     {
+        list = new SplitsReceiver[](0);
+    }
+
+    function splitsReceivers(
+        uint256 splitsReceiver,
+        uint32 weight
+    ) internal pure returns (SplitsReceiver[] memory list) {
         list = new SplitsReceiver[](1);
         list[0] = SplitsReceiver(splitsReceiver, weight);
     }
@@ -214,7 +257,10 @@ contract DripsTest is Test {
         list[1] = SplitsReceiver(splitsReceiver2, weight2);
     }
 
-    function setSplits(uint256 forAccount, SplitsReceiver[] memory newReceivers) internal {
+    function setSplits(
+        uint256 forAccount,
+        SplitsReceiver[] memory newReceivers
+    ) internal {
         SplitsReceiver[] memory curr = loadSplits(forAccount);
         assertSplits(forAccount, curr);
 
@@ -225,10 +271,10 @@ contract DripsTest is Test {
         assertSplits(forAccount, newReceivers);
     }
 
-    function assertSplits(uint256 forAccount, SplitsReceiver[] memory expectedReceivers)
-        internal
-        view
-    {
+    function assertSplits(
+        uint256 forAccount,
+        SplitsReceiver[] memory expectedReceivers
+    ) internal view {
         bytes32 actual = drips.splitsHash(forAccount);
         bytes32 expected = drips.hashSplits(expectedReceivers);
         assertEq(actual, expected, "Invalid splits hash");
@@ -238,14 +284,27 @@ contract DripsTest is Test {
         collectAll(forAccount, expectedAmt, 0);
     }
 
-    function collectAll(uint256 forAccount, uint128 expectedCollected, uint128 expectedSplit)
-        internal
-    {
-        uint128 receivable = drips.receiveStreamsResult(forAccount, erc20, type(uint32).max);
-        uint32 receivableCycles = drips.receivableStreamsCycles(forAccount, erc20);
+    function collectAll(
+        uint256 forAccount,
+        uint128 expectedCollected,
+        uint128 expectedSplit
+    ) internal {
+        uint128 receivable = drips.receiveStreamsResult(
+            forAccount,
+            erc20,
+            type(uint32).max
+        );
+        uint32 receivableCycles = drips.receivableStreamsCycles(
+            forAccount,
+            erc20
+        );
         receiveStreams(forAccount, receivable, receivableCycles);
 
-        split(forAccount, expectedCollected - collectable(forAccount), expectedSplit);
+        split(
+            forAccount,
+            expectedCollected - collectable(forAccount),
+            expectedSplit
+        );
 
         collect(forAccount, expectedCollected);
     }
@@ -256,7 +315,12 @@ contract DripsTest is Test {
         uint32 expectedReceivedCycles
     ) internal {
         receiveStreams(
-            forAccount, type(uint32).max, expectedReceivedAmt, expectedReceivedCycles, 0, 0
+            forAccount,
+            type(uint32).max,
+            expectedReceivedAmt,
+            expectedReceivedCycles,
+            0,
+            0
         );
     }
 
@@ -269,62 +333,113 @@ contract DripsTest is Test {
         uint32 expectedCyclesAfter
     ) internal {
         uint128 expectedTotalAmt = expectedReceivedAmt + expectedAmtAfter;
-        uint32 expectedTotalCycles = expectedReceivedCycles + expectedCyclesAfter;
+        uint32 expectedTotalCycles = expectedReceivedCycles +
+            expectedCyclesAfter;
         assertReceivableStreamsCycles(forAccount, expectedTotalCycles);
-        assertReceiveStreamsResult(forAccount, type(uint32).max, expectedTotalAmt);
+        assertReceiveStreamsResult(
+            forAccount,
+            type(uint32).max,
+            expectedTotalAmt
+        );
         assertReceiveStreamsResult(forAccount, maxCycles, expectedReceivedAmt);
 
-        uint128 receivedAmt = drips.receiveStreams(forAccount, erc20, maxCycles);
+        uint128 receivedAmt = drips.receiveStreams(
+            forAccount,
+            erc20,
+            maxCycles
+        );
 
-        assertEq(receivedAmt, expectedReceivedAmt, "Invalid amount received from streams");
+        assertEq(
+            receivedAmt,
+            expectedReceivedAmt,
+            "Invalid amount received from streams"
+        );
         assertReceivableStreamsCycles(forAccount, expectedCyclesAfter);
-        assertReceiveStreamsResult(forAccount, type(uint32).max, expectedAmtAfter);
+        assertReceiveStreamsResult(
+            forAccount,
+            type(uint32).max,
+            expectedAmtAfter
+        );
     }
 
-    function assertReceivableStreamsCycles(uint256 forAccount, uint32 expectedCycles)
-        internal
-        view
-    {
+    function assertReceivableStreamsCycles(
+        uint256 forAccount,
+        uint32 expectedCycles
+    ) internal view {
         uint32 actualCycles = drips.receivableStreamsCycles(forAccount, erc20);
-        assertEq(actualCycles, expectedCycles, "Invalid total receivable streams cycles");
+        assertEq(
+            actualCycles,
+            expectedCycles,
+            "Invalid total receivable streams cycles"
+        );
     }
 
-    function assertReceiveStreamsResult(uint256 forAccount, uint32 maxCycles, uint128 expectedAmt)
-        internal
-        view
-    {
-        uint128 actualAmt = drips.receiveStreamsResult(forAccount, erc20, maxCycles);
+    function assertReceiveStreamsResult(
+        uint256 forAccount,
+        uint32 maxCycles,
+        uint128 expectedAmt
+    ) internal view {
+        uint128 actualAmt = drips.receiveStreamsResult(
+            forAccount,
+            erc20,
+            maxCycles
+        );
         assertEq(actualAmt, expectedAmt, "Invalid receivable amount");
     }
 
-    function split(uint256 forAccount, uint128 expectedCollectable, uint128 expectedSplit)
-        internal
-    {
+    function split(
+        uint256 forAccount,
+        uint128 expectedCollectable,
+        uint128 expectedSplit
+    ) internal {
         assertSplittable(forAccount, expectedCollectable + expectedSplit);
-        assertSplitResult(forAccount, expectedCollectable + expectedSplit, expectedCollectable);
+        assertSplitResult(
+            forAccount,
+            expectedCollectable + expectedSplit,
+            expectedCollectable
+        );
         uint128 collectableBefore = collectable(forAccount);
 
-        (uint128 collectableAmt, uint128 splitAmt) =
-            drips.split(forAccount, erc20, loadSplits(forAccount));
+        (uint128 collectableAmt, uint128 splitAmt) = drips.split(
+            forAccount,
+            erc20,
+            loadSplits(forAccount)
+        );
 
-        assertEq(collectableAmt, expectedCollectable, "Invalid collectable amount");
+        assertEq(
+            collectableAmt,
+            expectedCollectable,
+            "Invalid collectable amount"
+        );
         assertEq(splitAmt, expectedSplit, "Invalid split amount");
         assertSplittable(forAccount, 0);
         assertCollectable(forAccount, collectableBefore + expectedCollectable);
     }
 
-    function splittable(uint256 forAccount) internal view returns (uint128 amt) {
+    function splittable(
+        uint256 forAccount
+    ) internal view returns (uint128 amt) {
         return drips.splittable(forAccount, erc20);
     }
 
-    function assertSplittable(uint256 forAccount, uint256 expected) internal view {
+    function assertSplittable(
+        uint256 forAccount,
+        uint256 expected
+    ) internal view {
         uint128 actual = splittable(forAccount);
         assertEq(actual, expected, "Invalid splittable");
     }
 
-    function assertSplitResult(uint256 forAccount, uint256 amt, uint256 expected) internal view {
-        (uint128 collectableAmt, uint128 splitAmt) =
-            drips.splitResult(forAccount, loadSplits(forAccount), uint128(amt));
+    function assertSplitResult(
+        uint256 forAccount,
+        uint256 amt,
+        uint256 expected
+    ) internal view {
+        (uint128 collectableAmt, uint128 splitAmt) = drips.splitResult(
+            forAccount,
+            loadSplits(forAccount),
+            uint128(amt)
+        );
         assertEq(collectableAmt, expected, "Invalid collectable amount");
         assertEq(splitAmt, amt - expected, "Invalid split amount");
     }
@@ -333,7 +448,10 @@ contract DripsTest is Test {
         assertCollectable(forAccount, expectedAmt);
         uint256 ownBalanceBefore = ownBalance();
         uint256 dripsBalanceBefore = dripsBalance();
-        (uint256 streamsBalanceBefore, uint256 splitsBalanceBefore) = balances();
+        (
+            uint256 streamsBalanceBefore,
+            uint256 splitsBalanceBefore
+        ) = balances();
 
         vm.prank(driver);
         uint128 actualAmt = drips.collect(forAccount, erc20);
@@ -346,25 +464,42 @@ contract DripsTest is Test {
         assertBalances(streamsBalanceBefore, splitsBalanceBefore - expectedAmt);
     }
 
-    function collectable(uint256 forAccount) internal view returns (uint128 amt) {
+    function collectable(
+        uint256 forAccount
+    ) internal view returns (uint128 amt) {
         return drips.collectable(forAccount, erc20);
     }
 
-    function assertCollectable(uint256 forAccount, uint256 expected) internal view {
+    function assertCollectable(
+        uint256 forAccount,
+        uint256 expected
+    ) internal view {
         assertEq(collectable(forAccount), expected, "Invalid collectable");
     }
 
-    function balances() internal view returns (uint256 streamsBalance, uint256 splitsBalance) {
+    function balances()
+        internal
+        view
+        returns (uint256 streamsBalance, uint256 splitsBalance)
+    {
         return drips.balances(erc20);
     }
 
-    function assertBalances(uint256 expectedStreamsBalance, uint256 expectedSplitsBalance)
-        internal
-        view
-    {
+    function assertBalances(
+        uint256 expectedStreamsBalance,
+        uint256 expectedSplitsBalance
+    ) internal view {
         (uint256 streamsBalance, uint256 splitsBalance) = balances();
-        assertEq(streamsBalance, expectedStreamsBalance, "Invalid streams balance");
-        assertEq(splitsBalance, expectedSplitsBalance, "Invalid splits balance");
+        assertEq(
+            streamsBalance,
+            expectedStreamsBalance,
+            "Invalid streams balance"
+        );
+        assertEq(
+            splitsBalance,
+            expectedSplitsBalance,
+            "Invalid splits balance"
+        );
     }
 
     function transferToDrips(uint256 amt) internal {
@@ -415,12 +550,22 @@ contract DripsTest is Test {
 
         vm.prank(driver);
         int128 realBalanceDelta = drips.setStreams(
-            accountId, erc20, receivers, -int128(streamsBalance) - 1, receivers, 0, 0
+            accountId,
+            erc20,
+            receivers,
+            -int128(streamsBalance) - 1,
+            receivers,
+            0,
+            0
         );
         withdraw(uint128(-realBalanceDelta));
 
-        assertEq(realBalanceDelta, -int128(streamsBalance), "Invalid real balance delta");
-        (,,, uint128 actualBalance,) = drips.streamsState(accountId, erc20);
+        assertEq(
+            realBalanceDelta,
+            -int128(streamsBalance),
+            "Invalid real balance delta"
+        );
+        (, , , uint128 actualBalance, ) = drips.streamsState(accountId, erc20);
         assertEq(actualBalance, 0, "Invalid streams balance");
         assertOwnBalance(ownBalanceBefore);
         assertDripsBalance(0);
@@ -486,14 +631,31 @@ contract DripsTest is Test {
         uint32 maxEnd = lastUpdate + 2;
         StreamsHistory[] memory history = new StreamsHistory[](1);
         history[0] = StreamsHistory(0, receivers, lastUpdate, maxEnd);
-        bytes32 actualHistoryHash =
-            drips.hashStreamsHistory(bytes32(0), drips.hashStreams(receivers), lastUpdate, maxEnd);
-        (, bytes32 expectedHistoryHash,,,) = drips.streamsState(accountId, erc20);
-        assertEq(actualHistoryHash, expectedHistoryHash, "Invalid history hash");
+        bytes32 actualHistoryHash = drips.hashStreamsHistory(
+            bytes32(0),
+            drips.hashStreams(receivers),
+            lastUpdate,
+            maxEnd
+        );
+        (, bytes32 expectedHistoryHash, , , ) = drips.streamsState(
+            accountId,
+            erc20
+        );
+        assertEq(
+            actualHistoryHash,
+            expectedHistoryHash,
+            "Invalid history hash"
+        );
 
         // Check squeezable streams
         skip(1);
-        uint128 amt = drips.squeezeStreamsResult(receiver, erc20, accountId, 0, history);
+        uint128 amt = drips.squeezeStreamsResult(
+            receiver,
+            erc20,
+            accountId,
+            0,
+            history
+        );
         assertEq(amt, 1, "Invalid squeezable amt before");
 
         // Squeeze
@@ -502,7 +664,13 @@ contract DripsTest is Test {
         assertEq(amt, 1, "Invalid squeezed amt");
 
         // Check squeezable streams
-        amt = drips.squeezeStreamsResult(receiver, erc20, accountId, 0, history);
+        amt = drips.squeezeStreamsResult(
+            receiver,
+            erc20,
+            accountId,
+            0,
+            history
+        );
         assertEq(amt, 0, "Invalid squeezable amt after");
 
         // Collect the squeezed amount
@@ -549,18 +717,38 @@ contract DripsTest is Test {
     function testBalanceAt() public {
         StreamReceiver[] memory receivers = streamsReceivers(receiver, 1);
         setStreams(accountId, 0, 2, receivers);
-        uint256 balanceAt =
-            drips.balanceAt(accountId, erc20, receivers, uint32(vm.getBlockTimestamp() + 1));
+        uint256 balanceAt = drips.balanceAt(
+            accountId,
+            erc20,
+            receivers,
+            uint32(vm.getBlockTimestamp() + 1)
+        );
         assertEq(balanceAt, 1, "Invalid balance");
     }
 
     function testRegisterDriver() public {
         address driverAddr = address(bytes20("otherDriver"));
         uint32 nextDriverId = drips.nextDriverId();
-        assertEq(address(0), drips.driverAddress(nextDriverId), "Invalid unused driver address");
-        assertEq(nextDriverId, drips.registerDriver(driverAddr), "Invalid assigned driver ID");
-        assertEq(driverAddr, drips.driverAddress(nextDriverId), "Invalid driver address");
-        assertEq(nextDriverId + 1, drips.nextDriverId(), "Invalid next driver ID");
+        assertEq(
+            address(0),
+            drips.driverAddress(nextDriverId),
+            "Invalid unused driver address"
+        );
+        assertEq(
+            nextDriverId,
+            drips.registerDriver(driverAddr),
+            "Invalid assigned driver ID"
+        );
+        assertEq(
+            driverAddr,
+            drips.driverAddress(nextDriverId),
+            "Invalid driver address"
+        );
+        assertEq(
+            nextDriverId + 1,
+            drips.nextDriverId(),
+            "Invalid next driver ID"
+        );
     }
 
     function testRegisteringDriverForZeroAddressReverts() public {
@@ -569,11 +757,19 @@ contract DripsTest is Test {
     }
 
     function testUpdateDriverAddress() public {
-        assertEq(driver, drips.driverAddress(driverId), "Invalid driver address before");
+        assertEq(
+            driver,
+            drips.driverAddress(driverId),
+            "Invalid driver address before"
+        );
         address newDriverAddr = address(bytes20("otherDriver"));
         vm.prank(driver);
         drips.updateDriverAddress(driverId, newDriverAddr);
-        assertEq(newDriverAddr, drips.driverAddress(driverId), "Invalid driver address after");
+        assertEq(
+            newDriverAddr,
+            drips.driverAddress(driverId),
+            "Invalid driver address after"
+        );
     }
 
     function testUpdateDriverAddressRevertsWhenNotCalledByTheDriver() public {
@@ -590,12 +786,22 @@ contract DripsTest is Test {
         uint32 cycleLength = drips.cycleSecs();
         // Covers 1.5 cycles of streaming
         erc20 = defaultErc20;
-        setStreams(accountId, 0, 9 * cycleLength, streamsReceivers(receiver1, 4, receiver2, 2));
+        setStreams(
+            accountId,
+            0,
+            9 * cycleLength,
+            streamsReceivers(receiver1, 4, receiver2, 2)
+        );
 
         skipToCycleEnd();
         // Covers 2 cycles of streaming
         erc20 = otherErc20;
-        setStreams(accountId, 0, 6 * cycleLength, streamsReceivers(receiver1, 3));
+        setStreams(
+            accountId,
+            0,
+            6 * cycleLength,
+            streamsReceivers(receiver1, 3)
+        );
 
         skipToCycleEnd();
         // receiver1 had 1.5 cycles of 4 per second
@@ -628,7 +834,15 @@ contract DripsTest is Test {
 
     function testSetStreamsRevertsWhenNotCalledByTheDriver() public {
         vm.expectRevert(ERROR_NOT_DRIVER);
-        drips.setStreams(accountId, erc20, streamsReceivers(), 0, streamsReceivers(), 0, 0);
+        drips.setStreams(
+            accountId,
+            erc20,
+            streamsReceivers(),
+            0,
+            streamsReceivers(),
+            0,
+            0
+        );
     }
 
     function testGiveRevertsWhenNotCalledByTheDriver() public {
@@ -659,7 +873,15 @@ contract DripsTest is Test {
         transferToDrips(1);
         vm.prank(driver);
         vm.expectRevert(ERROR_BALANCE_TOO_HIGH);
-        drips.setStreams(accountId2, erc20, streamsReceivers(), 1, streamsReceivers(), 0, 0);
+        drips.setStreams(
+            accountId2,
+            erc20,
+            streamsReceivers(),
+            1,
+            streamsReceivers(),
+            0,
+            0
+        );
         withdraw(1);
 
         setStreams(accountId1, maxBalance, maxBalance - 1, streamsReceivers());
@@ -673,7 +895,15 @@ contract DripsTest is Test {
 
         vm.prank(driver);
         vm.expectRevert(ERROR_ERC_20_BALANCE_TOO_LOW);
-        drips.setStreams(accountId, erc20, streamsReceivers(), 1, streamsReceivers(), 0, 0);
+        drips.setStreams(
+            accountId,
+            erc20,
+            streamsReceivers(),
+            1,
+            streamsReceivers(),
+            0,
+            0
+        );
 
         setStreams(accountId, 2, 3, streamsReceivers());
     }
@@ -681,7 +911,8 @@ contract DripsTest is Test {
     function testGiveLimitsTotalBalance() public {
         uint128 streamsBalance = uint128(drips.MAX_TOTAL_BALANCE()) / 10;
         setStreams(accountId, 0, streamsBalance, streamsReceivers());
-        uint128 maxBalance = uint128(drips.MAX_TOTAL_BALANCE()) - streamsBalance;
+        uint128 maxBalance = uint128(drips.MAX_TOTAL_BALANCE()) -
+            streamsBalance;
         assertBalances(streamsBalance, 0);
         give(accountId, receiver1, maxBalance - 1);
         assertBalances(streamsBalance, maxBalance - 1);
@@ -733,7 +964,13 @@ contract DripsTest is Test {
     }
 
     function testSqueezeStreamsCanBePaused() public canBePausedTest {
-        drips.squeezeStreams(accountId, erc20, accountId, 0, new StreamsHistory[](0));
+        drips.squeezeStreams(
+            accountId,
+            erc20,
+            accountId,
+            0,
+            new StreamsHistory[](0)
+        );
     }
 
     function testSplitCanBePaused() public canBePausedTest {
@@ -745,7 +982,15 @@ contract DripsTest is Test {
     }
 
     function testSetStreamsCanBePaused() public canBePausedTest {
-        drips.setStreams(accountId, erc20, streamsReceivers(), 1, streamsReceivers(), 0, 0);
+        drips.setStreams(
+            accountId,
+            erc20,
+            streamsReceivers(),
+            1,
+            streamsReceivers(),
+            0,
+            0
+        );
     }
 
     function testGiveCanBePaused() public canBePausedTest {

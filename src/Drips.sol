@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.20;
 
-import {
-    Streams, StreamConfig, StreamsHistory, StreamConfigImpl, StreamReceiver
-} from "./Streams.sol";
+import {Streams, StreamConfig, StreamsHistory, StreamConfigImpl, StreamReceiver} from "./Streams.sol";
 import {Managed} from "./Managed.sol";
 import {Splits, SplitsReceiver} from "./Splits.sol";
-import {IERC20, SafeERC20} from "openzeppelin-contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20, SafeERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 
 using SafeERC20 for IERC20;
 
@@ -57,7 +55,8 @@ contract Drips is Managed, Streams, Splits {
     /// Limits cost of changes in streams configuration.
     uint256 public constant MAX_STREAMS_RECEIVERS = _MAX_STREAMS_RECEIVERS;
     /// @notice The additional decimals for all amtPerSec values.
-    uint8 public constant AMT_PER_SEC_EXTRA_DECIMALS = _AMT_PER_SEC_EXTRA_DECIMALS;
+    uint8 public constant AMT_PER_SEC_EXTRA_DECIMALS =
+        _AMT_PER_SEC_EXTRA_DECIMALS;
     /// @notice The multiplier for all amtPerSec values.
     uint160 public constant AMT_PER_SEC_MULTIPLIER = _AMT_PER_SEC_MULTIPLIER;
     /// @notice Maximum number of splits receivers of a single account.
@@ -80,7 +79,8 @@ contract Drips is Managed, Streams, Splits {
     /// @notice The minimum amtPerSec of a stream. It's 1 token per cycle.
     uint160 public immutable minAmtPerSec;
     /// @notice The ERC-1967 storage slot holding a single `DripsStorage` structure.
-    bytes32 private immutable _dripsStorageSlot = _erc1967Slot("eip1967.drips.storage");
+    bytes32 private immutable _dripsStorageSlot =
+        _erc1967Slot("eip1967.drips.storage");
 
     /// @notice Emitted when a driver is registered
     /// @param driverId The driver ID
@@ -92,14 +92,20 @@ contract Drips is Managed, Streams, Splits {
     /// @param oldDriverAddr The old driver address
     /// @param newDriverAddr The new driver address
     event DriverAddressUpdated(
-        uint32 indexed driverId, address indexed oldDriverAddr, address indexed newDriverAddr
+        uint32 indexed driverId,
+        address indexed oldDriverAddr,
+        address indexed newDriverAddr
     );
 
     /// @notice Emitted when funds are withdrawn.
     /// @param erc20 The used ERC-20 token.
     /// @param receiver The address that the funds are sent to.
     /// @param amt The withdrawn amount.
-    event Withdrawn(IERC20 indexed erc20, address indexed receiver, uint256 amt);
+    event Withdrawn(
+        IERC20 indexed erc20,
+        address indexed receiver,
+        uint256 amt
+    );
 
     /// @notice Emitted by the account to broadcast metadata.
     /// The key and the value are not standardized by the protocol, it's up to the users
@@ -107,7 +113,11 @@ contract Drips is Managed, Streams, Splits {
     /// @param accountId The ID of the account emitting metadata
     /// @param key The metadata key
     /// @param value The metadata value
-    event AccountMetadataEmitted(uint256 indexed accountId, bytes32 indexed key, bytes value);
+    event AccountMetadataEmitted(
+        uint256 indexed accountId,
+        bytes32 indexed key,
+        bytes value
+    );
 
     struct DripsStorage {
         /// @notice The next driver ID that will be used when registering.
@@ -132,7 +142,9 @@ contract Drips is Managed, Streams, Splits {
     /// streams balance and being receivable by their receivers.
     /// High value makes receiving cheaper by making it process less cycles for a given time range.
     /// Must be higher than 1.
-    constructor(uint32 cycleSecs_)
+    constructor(
+        uint32 cycleSecs_
+    )
         Streams(cycleSecs_, _erc1967Slot("eip1967.streams.storage"))
         Splits(_erc1967Slot("eip1967.splits.storage"))
     {
@@ -157,7 +169,10 @@ contract Drips is Managed, Streams, Splits {
     /// @notice Verifies that the caller controls the given driver ID and reverts otherwise.
     /// @param driverId The driver ID.
     function _assertCallerIsDriver(uint32 driverId) internal view {
-        require(driverAddress(driverId) == msg.sender, "Callable only by the driver");
+        require(
+            driverAddress(driverId) == msg.sender,
+            "Callable only by the driver"
+        );
     }
 
     /// @notice Registers a driver.
@@ -171,7 +186,9 @@ contract Drips is Managed, Streams, Splits {
     /// It should be a smart contract capable of dealing with the Drips API.
     /// It shouldn't be an EOA because the API requires making multiple calls per transaction.
     /// @return driverId The registered driver ID.
-    function registerDriver(address driverAddr) public whenNotPaused returns (uint32 driverId) {
+    function registerDriver(
+        address driverAddr
+    ) public whenNotPaused returns (uint32 driverId) {
         require(driverAddr != address(0), "Driver registered for 0 address");
         DripsStorage storage dripsStorage = _dripsStorage();
         driverId = dripsStorage.nextDriverId++;
@@ -183,7 +200,9 @@ contract Drips is Managed, Streams, Splits {
     /// @param driverId The driver ID to look up.
     /// @return driverAddr The address of the driver.
     /// If the driver hasn't been registered yet, returns address 0.
-    function driverAddress(uint32 driverId) public view returns (address driverAddr) {
+    function driverAddress(
+        uint32 driverId
+    ) public view returns (address driverAddr) {
         return _dripsStorage().driverAddresses[driverId];
     }
 
@@ -192,7 +211,10 @@ contract Drips is Managed, Streams, Splits {
     /// @param newDriverAddr The new address of the driver.
     /// It should be a smart contract capable of dealing with the Drips API.
     /// It shouldn't be an EOA because the API requires making multiple calls per transaction.
-    function updateDriverAddress(uint32 driverId, address newDriverAddr) public whenNotPaused {
+    function updateDriverAddress(
+        uint32 driverId,
+        address newDriverAddr
+    ) public whenNotPaused {
         _assertCallerIsDriver(driverId);
         _dripsStorage().driverAddresses[driverId] = newDriverAddr;
         emit DriverAddressUpdated(driverId, msg.sender, newDriverAddr);
@@ -216,11 +238,9 @@ contract Drips is Managed, Streams, Splits {
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @return streamsBalance The balance currently stored in streaming.
     /// @return splitsBalance The balance currently stored in splitting.
-    function balances(IERC20 erc20)
-        public
-        view
-        returns (uint128 streamsBalance, uint128 splitsBalance)
-    {
+    function balances(
+        IERC20 erc20
+    ) public view returns (uint128 streamsBalance, uint128 splitsBalance) {
         Balance storage balance = _dripsStorage().balances[erc20];
         return (balance.streams, balance.splits);
     }
@@ -269,7 +289,10 @@ contract Drips is Managed, Streams, Splits {
     /// No funds are transferred, all the tokens are already held by Drips.
     /// @param erc20 The used ERC-20 token.
     /// @param amt The amount to decrease the splits balance by.
-    function _moveBalanceFromStreamsToSplits(IERC20 erc20, uint128 amt) internal {
+    function _moveBalanceFromStreamsToSplits(
+        IERC20 erc20,
+        uint128 amt
+    ) internal {
         Balance storage balance = _dripsStorage().balances[erc20];
         balance.streams -= amt;
         balance.splits += amt;
@@ -284,7 +307,10 @@ contract Drips is Managed, Streams, Splits {
         (uint256 streamsBalance, uint128 splitsBalance) = balances(erc20);
         uint256 newTotalBalance = streamsBalance + splitsBalance + amt;
         require(newTotalBalance <= MAX_TOTAL_BALANCE, "Total balance too high");
-        require(newTotalBalance <= _tokenBalance(erc20), "Token balance too low");
+        require(
+            newTotalBalance <= _tokenBalance(erc20),
+            "Token balance too low"
+        );
     }
 
     /// @notice Transfers withdrawable funds to an address.
@@ -304,7 +330,9 @@ contract Drips is Managed, Streams, Splits {
     /// contract address and the sum of balances managed by the protocol as indicated by `balances`.
     function withdraw(IERC20 erc20, address receiver, uint256 amt) public {
         (uint128 streamsBalance, uint128 splitsBalance) = balances(erc20);
-        uint256 withdrawable = _tokenBalance(erc20) - streamsBalance - splitsBalance;
+        uint256 withdrawable = _tokenBalance(erc20) -
+            streamsBalance -
+            splitsBalance;
         require(amt <= withdrawable, "Withdrawal amount too high");
         emit Withdrawn(erc20, receiver, amt);
         erc20.safeTransfer(receiver, amt);
@@ -325,11 +353,10 @@ contract Drips is Managed, Streams, Splits {
     /// or impose any restrictions on holding or transferring tokens are not supported.
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @return cycles The number of cycles which can be flushed
-    function receivableStreamsCycles(uint256 accountId, IERC20 erc20)
-        public
-        view
-        returns (uint32 cycles)
-    {
+    function receivableStreamsCycles(
+        uint256 accountId,
+        IERC20 erc20
+    ) public view returns (uint32 cycles) {
         return Streams._receivableStreamsCycles(accountId, erc20);
     }
 
@@ -345,12 +372,16 @@ contract Drips is Managed, Streams, Splits {
     /// If too low, receiving will be cheap, but may not cover many cycles.
     /// If too high, receiving may become too expensive to fit in a single transaction.
     /// @return receivableAmt The amount which would be received
-    function receiveStreamsResult(uint256 accountId, IERC20 erc20, uint32 maxCycles)
-        public
-        view
-        returns (uint128 receivableAmt)
-    {
-        (receivableAmt,,,,) = Streams._receiveStreamsResult(accountId, erc20, maxCycles);
+    function receiveStreamsResult(
+        uint256 accountId,
+        IERC20 erc20,
+        uint32 maxCycles
+    ) public view returns (uint128 receivableAmt) {
+        (receivableAmt, , , , ) = Streams._receiveStreamsResult(
+            accountId,
+            erc20,
+            maxCycles
+        );
     }
 
     /// @notice Receive streams for the account.
@@ -367,13 +398,13 @@ contract Drips is Managed, Streams, Splits {
     /// If too low, receiving will be cheap, but may not cover many cycles.
     /// If too high, receiving may become too expensive to fit in a single transaction.
     /// @return receivedAmt The received amount
-    function receiveStreams(uint256 accountId, IERC20 erc20, uint32 maxCycles)
-        public
-        whenNotPaused
-        returns (uint128 receivedAmt)
-    {
+    function receiveStreams(
+        uint256 accountId,
+        IERC20 erc20,
+        uint32 maxCycles
+    ) public whenNotPaused returns (uint128 receivedAmt) {
         receivedAmt = Streams._receiveStreams(accountId, erc20, maxCycles);
-        // slither-disable-next-line timestamp
+        // slither-disable-next-line timestamp  
         if (receivedAmt != 0) {
             _moveBalanceFromStreamsToSplits(erc20, receivedAmt);
             Splits._addSplittable(accountId, erc20, receivedAmt);
@@ -407,7 +438,13 @@ contract Drips is Managed, Streams, Splits {
         bytes32 historyHash,
         StreamsHistory[] memory streamsHistory
     ) public whenNotPaused returns (uint128 amt) {
-        amt = Streams._squeezeStreams(accountId, erc20, senderId, historyHash, streamsHistory);
+        amt = Streams._squeezeStreams(
+            accountId,
+            erc20,
+            senderId,
+            historyHash,
+            streamsHistory
+        );
         // slither-disable-next-line timestamp
         if (amt != 0) {
             _moveBalanceFromStreamsToSplits(erc20, amt);
@@ -435,8 +472,13 @@ contract Drips is Managed, Streams, Splits {
         bytes32 historyHash,
         StreamsHistory[] memory streamsHistory
     ) public view returns (uint128 amt) {
-        (amt,,,,) =
-            Streams._squeezeStreamsResult(accountId, erc20, senderId, historyHash, streamsHistory);
+        (amt, , , , ) = Streams._squeezeStreamsResult(
+            accountId,
+            erc20,
+            senderId,
+            historyHash,
+            streamsHistory
+        );
     }
 
     /// @notice Returns account's received but not split yet funds.
@@ -448,7 +490,10 @@ contract Drips is Managed, Streams, Splits {
     /// or impose any restrictions on holding or transferring tokens are not supported.
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @return amt The amount received but not split yet.
-    function splittable(uint256 accountId, IERC20 erc20) public view returns (uint128 amt) {
+    function splittable(
+        uint256 accountId,
+        IERC20 erc20
+    ) public view returns (uint128 amt) {
         return Splits._splittable(accountId, erc20);
     }
 
@@ -460,11 +505,11 @@ contract Drips is Managed, Streams, Splits {
     /// @return collectableAmt The amount made collectable for the account
     /// on top of what was collectable before.
     /// @return splitAmt The amount split to the account's splits receivers
-    function splitResult(uint256 accountId, SplitsReceiver[] memory currReceivers, uint128 amount)
-        public
-        view
-        returns (uint128 collectableAmt, uint128 splitAmt)
-    {
+    function splitResult(
+        uint256 accountId,
+        SplitsReceiver[] memory currReceivers,
+        uint128 amount
+    ) public view returns (uint128 collectableAmt, uint128 splitAmt) {
         return Splits._splitResult(accountId, currReceivers, amount);
     }
 
@@ -488,11 +533,11 @@ contract Drips is Managed, Streams, Splits {
     /// @return collectableAmt The amount made collectable for the account
     /// on top of what was collectable before.
     /// @return splitAmt The amount split to the account's splits receivers
-    function split(uint256 accountId, IERC20 erc20, SplitsReceiver[] memory currReceivers)
-        public
-        whenNotPaused
-        returns (uint128 collectableAmt, uint128 splitAmt)
-    {
+    function split(
+        uint256 accountId,
+        IERC20 erc20,
+        SplitsReceiver[] memory currReceivers
+    ) public whenNotPaused returns (uint128 collectableAmt, uint128 splitAmt) {
         return Splits._split(accountId, erc20, currReceivers);
     }
 
@@ -505,7 +550,10 @@ contract Drips is Managed, Streams, Splits {
     /// or impose any restrictions on holding or transferring tokens are not supported.
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @return amt The collectable amount.
-    function collectable(uint256 accountId, IERC20 erc20) public view returns (uint128 amt) {
+    function collectable(
+        uint256 accountId,
+        IERC20 erc20
+    ) public view returns (uint128 amt) {
         return Splits._collectable(accountId, erc20);
     }
 
@@ -520,12 +568,10 @@ contract Drips is Managed, Streams, Splits {
     /// or impose any restrictions on holding or transferring tokens are not supported.
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @return amt The collected amount
-    function collect(uint256 accountId, IERC20 erc20)
-        public
-        whenNotPaused
-        onlyDriver(accountId)
-        returns (uint128 amt)
-    {
+    function collect(
+        uint256 accountId,
+        IERC20 erc20
+    ) public whenNotPaused onlyDriver(accountId) returns (uint128 amt) {
         amt = Splits._collect(accountId, erc20);
         if (amt != 0) _decreaseSplitsBalance(erc20, amt);
     }
@@ -544,11 +590,12 @@ contract Drips is Managed, Streams, Splits {
     /// or impose any restrictions on holding or transferring tokens are not supported.
     /// If you use such tokens in the protocol, they can get stuck or lost.
     /// @param amt The given amount
-    function give(uint256 accountId, uint256 receiver, IERC20 erc20, uint128 amt)
-        public
-        whenNotPaused
-        onlyDriver(accountId)
-    {
+    function give(
+        uint256 accountId,
+        uint256 receiver,
+        IERC20 erc20,
+        uint128 amt
+    ) public whenNotPaused onlyDriver(accountId) {
         if (amt != 0) _increaseSplitsBalance(erc20, amt);
         Splits._give(accountId, receiver, erc20, amt);
     }
@@ -566,7 +613,10 @@ contract Drips is Managed, Streams, Splits {
     /// @return updateTime The time when streams have been configured for the last time.
     /// @return balance The balance when streams have been configured for the last time.
     /// @return maxEnd The current maximum end time of streaming.
-    function streamsState(uint256 accountId, IERC20 erc20)
+    function streamsState(
+        uint256 accountId,
+        IERC20 erc20
+    )
         public
         view
         returns (
@@ -657,13 +707,26 @@ contract Drips is Managed, Streams, Splits {
         StreamReceiver[] memory newReceivers,
         uint32 maxEndHint1,
         uint32 maxEndHint2
-    ) public whenNotPaused onlyDriver(accountId) returns (int128 realBalanceDelta) {
-        if (balanceDelta > 0) _increaseStreamsBalance(erc20, uint128(balanceDelta));
+    )
+        public
+        whenNotPaused
+        onlyDriver(accountId)
+        returns (int128 realBalanceDelta)
+    {
+        if (balanceDelta > 0)
+            _increaseStreamsBalance(erc20, uint128(balanceDelta));
         realBalanceDelta = Streams._setStreams(
-            accountId, erc20, currReceivers, balanceDelta, newReceivers, maxEndHint1, maxEndHint2
+            accountId,
+            erc20,
+            currReceivers,
+            balanceDelta,
+            newReceivers,
+            maxEndHint1,
+            maxEndHint2
         );
         // slither-disable-next-line timestamp
-        if (realBalanceDelta < 0) _decreaseStreamsBalance(erc20, uint128(-realBalanceDelta));
+        if (realBalanceDelta < 0)
+            _decreaseStreamsBalance(erc20, uint128(-realBalanceDelta));
     }
 
     /// @notice Calculates the hash of the streams configuration.
@@ -672,11 +735,9 @@ contract Drips is Managed, Streams, Splits {
     /// Must be sorted by the receivers' addresses, deduplicated and without 0 amtPerSecs.
     /// If the streams have never been updated, pass an empty array.
     /// @return streamsHash The hash of the streams configuration
-    function hashStreams(StreamReceiver[] memory receivers)
-        public
-        pure
-        returns (bytes32 streamsHash)
-    {
+    function hashStreams(
+        StreamReceiver[] memory receivers
+    ) public pure returns (bytes32 streamsHash) {
         return Streams._hashStreams(receivers);
     }
 
@@ -695,7 +756,13 @@ contract Drips is Managed, Streams, Splits {
         uint32 updateTime,
         uint32 maxEnd
     ) public pure returns (bytes32 streamsHistoryHash) {
-        return Streams._hashStreamsHistory(oldStreamsHistoryHash, streamsHash, updateTime, maxEnd);
+        return
+            Streams._hashStreamsHistory(
+                oldStreamsHistoryHash,
+                streamsHash,
+                updateTime,
+                maxEnd
+            );
     }
 
     /// @notice Sets the account splits configuration.
@@ -716,18 +783,19 @@ contract Drips is Managed, Streams, Splits {
     /// This is usually unwanted, because if splitting is repeated,
     /// funds split to themselves will be again split using the current configuration.
     /// Splitting 100% to self effectively blocks splitting unless the configuration is updated.
-    function setSplits(uint256 accountId, SplitsReceiver[] memory receivers)
-        public
-        whenNotPaused
-        onlyDriver(accountId)
-    {
+    function setSplits(
+        uint256 accountId,
+        SplitsReceiver[] memory receivers
+    ) public whenNotPaused onlyDriver(accountId) {
         Splits._setSplits(accountId, receivers);
     }
 
     /// @notice Current account's splits hash, see `hashSplits`.
     /// @param accountId The account ID.
     /// @return currSplitsHash The current account's splits hash
-    function splitsHash(uint256 accountId) public view returns (bytes32 currSplitsHash) {
+    function splitsHash(
+        uint256 accountId
+    ) public view returns (bytes32 currSplitsHash) {
         return Splits._splitsHash(accountId);
     }
 
@@ -735,11 +803,9 @@ contract Drips is Managed, Streams, Splits {
     /// @param receivers The list of the splits receivers.
     /// Must be sorted by the splits receivers' addresses, deduplicated and without 0 weights.
     /// @return receiversHash The hash of the list of splits receivers.
-    function hashSplits(SplitsReceiver[] memory receivers)
-        public
-        pure
-        returns (bytes32 receiversHash)
-    {
+    function hashSplits(
+        SplitsReceiver[] memory receivers
+    ) public pure returns (bytes32 receiversHash) {
         return Splits._hashSplits(receivers);
     }
 
@@ -748,22 +814,29 @@ contract Drips is Managed, Streams, Splits {
     /// to establish and follow conventions to ensure compatibility with the consumers.
     /// @param accountId The account ID.
     /// @param accountMetadata The list of account metadata.
-    function emitAccountMetadata(uint256 accountId, AccountMetadata[] calldata accountMetadata)
-        public
-        whenNotPaused
-        onlyDriver(accountId)
-    {
+    function emitAccountMetadata(
+        uint256 accountId,
+        AccountMetadata[] calldata accountMetadata
+    ) public whenNotPaused onlyDriver(accountId) {
         unchecked {
             for (uint256 i = 0; i < accountMetadata.length; i++) {
                 AccountMetadata calldata metadata = accountMetadata[i];
-                emit AccountMetadataEmitted(accountId, metadata.key, metadata.value);
+                emit AccountMetadataEmitted(
+                    accountId,
+                    metadata.key,
+                    metadata.value
+                );
             }
         }
     }
 
     /// @notice Returns the Drips storage.
     /// @return storageRef The storage.
-    function _dripsStorage() internal view returns (DripsStorage storage storageRef) {
+    function _dripsStorage()
+        internal
+        view
+        returns (DripsStorage storage storageRef)
+    {
         bytes32 slot = _dripsStorageSlot;
         // slither-disable-next-line assembly
         assembly {

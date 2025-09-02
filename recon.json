@@ -1,0 +1,107 @@
+{
+  "out/Drips.sol/Drips.json": {
+    "functions": [
+      {
+        "signature": "acceptAdmin()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "collect(uint256,address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "emitAccountMetadata(uint256,tuple[])",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "give(uint256,uint256,address,uint128)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "grantPauser(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "pause()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "proposeNewAdmin(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "receiveStreams(uint256,address,uint32)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "registerDriver(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "renounceAdmin()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "revokePauser(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "setSplits(uint256,tuple[])",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "setStreams(uint256,address,tuple[],int128,tuple[],uint32,uint32)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "split(uint256,address,tuple[])",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "squeezeStreams(uint256,address,uint256,bytes32,tuple[])",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "unpause()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "updateDriverAddress(uint32,address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "upgradeTo(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "upgradeToAndCall(address,bytes)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "withdraw(address,address,uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      }
+    ],
+    "separated": true
+  }
+}
