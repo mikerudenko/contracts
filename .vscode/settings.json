@@ -1,6 +1,9 @@
 {
-  "cSpell.words": ["IERC"],
-  "recon.defaultFuzzer": "Halmos",
+  "cSpell.words": [
+    "IERC",
+    "splittable"
+  ],
+  "recon.defaultFuzzer": "Echidna",
   "security.olympix.detectors.arbitraryAddressSpoofingAttack": true,
   "security.olympix.detectors.arbitraryTransferFrom": true,
   "security.olympix.detectors.noAccessControlPayableFallback": true,

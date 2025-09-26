@@ -319,7 +319,7 @@ abstract contract DripsTargets is BaseTargetFunctions, Properties {
         drips.updateDriverAddress(driverId, newDriverAddr);
     }
 
-    function drips_upgradeTo(address newImplementation) public asActor {
+    function drips_upgradeTo(address newImplementation) public asAdmin {
         drips.upgradeTo(newImplementation);
     }
 

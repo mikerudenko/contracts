@@ -135,7 +135,7 @@ abstract contract Splits {
                 splitsWeight += currReceivers[i].weight;
             }
             splitAmt = uint128(amount * splitsWeight / _TOTAL_SPLITS_WEIGHT);
-            collectableAmt = amount - splitAmt;
+            collectableAmt = amount - splitAmt; //@audit can it underflow? check with symbolic execution
         }
     }
 
@@ -168,7 +168,7 @@ abstract contract Splits {
                 splitsWeight += currReceivers[i].weight;
                 uint128 currSplitAmt =
                     uint128(collectableAmt * splitsWeight / _TOTAL_SPLITS_WEIGHT) - splitAmt;
-                splitAmt += currSplitAmt;
+                splitAmt += currSplitAmt; //@audit can it overflow? check with symbolic execution
                 uint256 receiver = currReceivers[i].accountId;
                 _addSplittable(receiver, erc20, currSplitAmt);
                 emit Split(accountId, receiver, erc20, currSplitAmt);

@@ -88,7 +88,7 @@
       },
       {
         "signature": "upgradeTo(address)",
-        "actor": "actor",
+        "actor": "admin",
         "mode": "normal"
       },
       {

@@ -108,7 +108,11 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
                     "BUG REPRODUCED: Admin changed without proper proposal flow"
                 );
                 // Uncomment to make test fail and show the bug
-                // assertEq(newAdmin, proposedAdmin, "Admin change must go through proposal");
+                assertEq(
+                    newAdmin,
+                    proposedAdmin,
+                    "Admin change must go through proposal"
+                );
             }
         }
     }
@@ -246,26 +250,22 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     }
 
     // forge test --match-test test_property_driverRegistrationMonotonic_a85p -vvv
-    
-    function test_property_driverRegistrationMonotonic_a85p() public {
-      
-       vm.roll(12113);
-       vm.warp(499285);
-       property_driverRegistrationMonotonic();
-    }
-   		
 
-// forge test --match-test test_property_totalTokenConservation_1rm9 -vvv
-    
-    function test_property_totalTokenConservation_1rm9() public {
-      
-       vm.roll(112);
-       vm.warp(216029);
-       property_totalTokenConservation();
-      
-       vm.roll(112);
-       vm.warp(216029);
-       property_totalTokenConservation();
+    function test_property_driverRegistrationMonotonic_a85p() public {
+        vm.roll(12113);
+        vm.warp(499285);
+        property_driverRegistrationMonotonic();
     }
-   		
+
+    // forge test --match-test test_property_totalTokenConservation_1rm9 -vvv
+
+    function test_property_totalTokenConservation_1rm9() public {
+        vm.roll(112);
+        vm.warp(216029);
+        property_totalTokenConservation();
+
+        vm.roll(112);
+        vm.warp(216029);
+        property_totalTokenConservation();
+    }
 }
