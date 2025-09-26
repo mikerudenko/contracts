@@ -13,6 +13,8 @@ shrinkLimit: 100000
 
 # Enhanced fuzzing settings
 testLimit: 50000
+testMaxGas: 100000000
+propMaxGas: 100000000
 seqLen: 100
 sender: ["0x10000", "0x20000", "0x30000"]
 
@@ -22,7 +24,7 @@ allContracts: true
 
 # Gas and performance settings
 estimateGas: true
-maxGasUsage: 12000000
+# maxGasUsage: 12000000
 timeout: 3600  # 1 hour
 
 # Advanced options
